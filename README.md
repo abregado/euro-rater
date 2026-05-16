@@ -8,7 +8,7 @@ The client runs entirely in the browser. It only **sends** data — it never rec
 
 ### Install from GitHub Pages
 
-The client is hosted at **https://benbuckton.github.io/euro-rater/**.
+The client is hosted at **https://abregado.github.io/euro-rater/**.
 
 On mobile (Chrome/Safari), visit the URL and use your browser's "Add to Home Screen" / "Install App" option. The app works offline once installed.
 
