@@ -39,7 +39,12 @@ let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
 function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as AppState;
+    if (raw) {
+      const parsed = JSON.parse(raw) as AppState;
+      const validIds = new Set(COUNTRIES.map(c => c.id));
+      parsed.orderedEntries = parsed.orderedEntries.filter(e => validIds.has(e.countryId));
+      return parsed;
+    }
   } catch { /* ignore */ }
   return { orderedEntries: [] };
 }
