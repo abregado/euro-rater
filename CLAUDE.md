@@ -10,7 +10,7 @@ Deploy: GitHub Actions → GitHub Pages (`euro-rater` repo) — workflow builds 
 Drag reorder: Pointer Events API. State: localStorage (`euro-rater-state`). Settings: localStorage (`euro-rater-settings`).
 PWA install + fullscreen prompts on mobile.
 
-25 Grand Final countries (Vienna 2026) in `COUNTRIES` array in `config.ts`, keyed by ISO 2-letter id (e.g. `gb`, `dk`).
+25 Grand Final countries (Vienna 2026) in `COUNTRIES` array in `config.ts`, keyed by ISO 2-letter id (e.g. `gb`, `dk`). Each entry includes `id`, `name`, `song`, and `artist`.
 Flag images: `client/public/flags/<id>.png` — 128×128 circular PNGs extracted from the scorecard PDF.
 Displayed with `clip-path: circle(calc(50% - 2px))` to crop flag edges.
 `loadState()` filters out stored entries whose `countryId` is no longer in `COUNTRIES`, and migrates old state to the current shape — safe to add/remove countries from config.
@@ -19,6 +19,7 @@ Icons (`icon-192.png`, `icon-512.png`) generated at build time by `scripts/make-
 ### Entry state
 
 `CountryEntry` has `countryId: string` and `emojis: string[]` (max 3, unique). No ratings or notes.
+`CountryPrototype` (in `config.ts`) has `id`, `name`, `song`, and `artist` fields.
 
 ### Emoji picker
 
@@ -28,7 +29,7 @@ Backdrop clicks detected via `getBoundingClientRect` coordinate check (not `e.ta
 `#emoji-picker-dialog[open]` scoped to `[open]` attribute — without this, `display: flex` overrides the UA `dialog:not([open]) { display: none }` and the dialog stays visible when closed.
 
 **Favorites bar** (always visible, gradient background): shows unique emojis used across all entries; ✕ close button on the right.
-**Grid** (scrollable): 128 emojis in 8-column grid defined in `PICKER_EMOJIS` array in `src/config.ts` — edit that array to change the set, 8 per row, comments label each group.
+**Grid** (scrollable): grouped emojis defined in `PICKER_EMOJI_GROUPS` array in `src/config.ts` — each group has a `label` and up to 30 `emojis`. Edit that array to change the set.
 Scroll position is preserved across re-renders (saved before `innerHTML = ''`, restored after).
 Emoji chips on list rows are direct-remove buttons (click removes without opening picker).
 
@@ -41,8 +42,11 @@ Gear icon (⚙) in the list header opens a full-screen settings panel. Fields:
 - **Status dot**: off / connected (green glow) / disconnected (pink glow)
 - **Send Now**: manually pushes current state
 - **Export / Import**: JSON file round-trip of full app state
+- **Clear List**: resets country order, keeps settings (`handleClearList`)
+- **Clear All Data**: wipes all localStorage state (`handleClearData`)
 
 WebSocket sends `{ name, timestamp, orderedEntries }` on every state change. Reconnects automatically while server mode is on.
+The client is **send-only** — it never receives or displays data from the server.
 
 ## Server (`server/`)
 
