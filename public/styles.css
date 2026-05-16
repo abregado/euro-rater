@@ -484,15 +484,14 @@ dialog::backdrop {
 .country-flag {
   display: block;
   flex-shrink: 0;
-  border-radius: 50%;
+  clip-path: circle(calc(50% - 2px));
 }
 
 .edit-flag {
   display: block;
   flex-shrink: 0;
-  border-radius: 50%;
-  border: 2px solid var(--gold);
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  clip-path: circle(calc(50% - 2px));
+  filter: drop-shadow(0 0 3px var(--gold)) drop-shadow(0 0 5px rgba(255, 215, 0, 0.4));
 }
 
 /* ---- Scrollbars ---- */
