@@ -18,6 +18,12 @@ interface DragState {
   pointerId: number;
 }
 
+interface SettingsState {
+  name: string;
+  serverAddress: string;
+  serverMode: boolean;
+}
+
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -26,15 +32,23 @@ interface BeforeInstallPromptEvent extends Event {
 // --- Constants ---
 
 const STORAGE_KEY = 'euro-rater-state';
+const SETTINGS_KEY = 'euro-rater-settings';
 const FULLSCREEN_KEY = 'euro-rater-fullscreen';
 const MAX_EMOJIS = 3;
 
 // --- State ---
 
 let appState: AppState = loadState();
+let settings: SettingsState = loadSettings();
 let dragState: DragState | null = null;
 let pickerCountryId: string | null = null;
 let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
+
+let ws: WebSocket | null = null;
+let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let wsBackoff = 1000;
+
+// --- Persistence ---
 
 function loadState(): AppState {
   try {
@@ -57,6 +71,19 @@ function loadState(): AppState {
 
 function saveState(): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  sendStateToServer();
+}
+
+function loadSettings(): SettingsState {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return JSON.parse(raw) as SettingsState;
+  } catch { /* ignore */ }
+  return { name: 'YourName', serverAddress: '', serverMode: false };
+}
+
+function saveSettings(): void {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
 // --- Helpers ---
@@ -74,6 +101,13 @@ function getDisplayEntries(): CountryEntry[] {
   return entries;
 }
 
+// --- Screen management ---
+
+function showScreen(name: 'list' | 'settings'): void {
+  document.getElementById('list-screen')!.classList.toggle('hidden', name !== 'list');
+  document.getElementById('settings-screen')!.classList.toggle('hidden', name !== 'settings');
+}
+
 // --- List Screen ---
 
 function renderList(): void {
@@ -86,9 +120,7 @@ function renderList(): void {
     const li = document.createElement('li');
     li.className = 'country-row';
     li.dataset.countryId = entry.countryId;
-    if (dragState?.countryId === entry.countryId) {
-      li.classList.add('is-dragging');
-    }
+    if (dragState?.countryId === entry.countryId) li.classList.add('is-dragging');
 
     const handle = document.createElement('span');
     handle.className = 'drag-handle';
@@ -128,7 +160,6 @@ function renderList(): void {
     });
 
     li.append(handle, flag, info, emojiZone);
-
     li.addEventListener('click', (e) => {
       const target = e.target as Element;
       if (target.closest('.drag-handle') || target.closest('.emoji-chip')) return;
@@ -156,7 +187,7 @@ function makeEmojiButton(emoji: string, entry: CountryEntry): HTMLButtonElement 
   const isSelected = entry.emojis.includes(emoji);
   const atMax = entry.emojis.length >= MAX_EMOJIS;
   const btn = document.createElement('button');
-  btn.type = 'button'; // must be explicit so the form[method=dialog] doesn't close on click
+  btn.type = 'button';
   btn.className = 'emoji-picker-btn';
   if (isSelected) btn.classList.add('selected');
   if (!isSelected && atMax) btn.classList.add('dimmed');
@@ -188,7 +219,6 @@ function renderEmojiPickerContent(): void {
   form.method = 'dialog';
   form.className = 'emoji-picker-form';
 
-  // Favorites bar — always shown, gradient background, X button on the right
   const favSection = document.createElement('div');
   favSection.className = 'emoji-picker-favorites';
 
@@ -206,7 +236,6 @@ function renderEmojiPickerContent(): void {
 
   form.appendChild(favSection);
 
-  // Scrollable grid
   const body = document.createElement('div');
   body.className = 'emoji-picker-body';
   const grid = document.createElement('div');
@@ -221,7 +250,6 @@ function renderEmojiPickerContent(): void {
 
 function initEmojiPicker(): void {
   const dialog = document.getElementById('emoji-picker-dialog') as HTMLDialogElement;
-
   dialog.addEventListener('click', (e) => {
     const rect = dialog.getBoundingClientRect();
     if (
@@ -231,10 +259,7 @@ function initEmojiPicker(): void {
       dialog.close();
     }
   });
-
-  dialog.addEventListener('close', () => {
-    pickerCountryId = null;
-  });
+  dialog.addEventListener('close', () => { pickerCountryId = null; });
 }
 
 // --- Drag ---
@@ -252,36 +277,25 @@ function startDrag(e: PointerEvent, countryId: string): void {
 function onDragMove(e: PointerEvent): void {
   if (!dragState || e.pointerId !== dragState.pointerId) return;
   e.preventDefault();
-
   const rows = Array.from(
     document.querySelectorAll<HTMLElement>('#country-list > li:not(.is-dragging)')
   );
-
   let newIndex = rows.length;
   for (let i = 0; i < rows.length; i++) {
     const rect = rows[i].getBoundingClientRect();
-    if (e.clientY < rect.top + rect.height / 2) {
-      newIndex = i;
-      break;
-    }
+    if (e.clientY < rect.top + rect.height / 2) { newIndex = i; break; }
   }
-
-  if (newIndex !== dragState.targetIndex) {
-    dragState.targetIndex = newIndex;
-    renderList();
-  }
+  if (newIndex !== dragState.targetIndex) { dragState.targetIndex = newIndex; renderList(); }
 }
 
 function onDragEnd(e: PointerEvent): void {
   if (!dragState || e.pointerId !== dragState.pointerId) return;
-
   const ds = dragState;
   const entries = appState.orderedEntries.filter(e => e.countryId !== ds.countryId);
   const dragged = appState.orderedEntries.find(e => e.countryId === ds.countryId)!;
   entries.splice(ds.targetIndex, 0, dragged);
   appState.orderedEntries = entries;
   saveState();
-
   dragState = null;
   cleanupDragListeners();
   renderList();
@@ -326,10 +340,7 @@ function openAddDialog(): void {
     nameSpan.textContent = proto.name;
 
     btn.append(flag, nameSpan);
-    btn.addEventListener('click', () => {
-      addCountry(proto.id);
-      dialog.close();
-    });
+    btn.addEventListener('click', () => { addCountry(proto.id); dialog.close(); });
     li.appendChild(btn);
     ul.appendChild(li);
   });
@@ -343,6 +354,142 @@ function addCountry(countryId: string): void {
   renderList();
 }
 
+// --- Settings Screen ---
+
+function initSettings(): void {
+  const nameInput    = document.getElementById('settings-name')        as HTMLInputElement;
+  const addressInput = document.getElementById('settings-address')     as HTMLInputElement;
+  const modeCheckbox = document.getElementById('settings-server-mode') as HTMLInputElement;
+
+  nameInput.value      = settings.name;
+  addressInput.value   = settings.serverAddress;
+  modeCheckbox.checked = settings.serverMode;
+  updateWsStatus(ws ? 'connected' : (settings.serverMode ? 'disconnected' : 'off'));
+
+  document.getElementById('settings-back-btn')!.addEventListener('click', () => showScreen('list'));
+
+  nameInput.addEventListener('input', () => {
+    settings.name = nameInput.value;
+    saveSettings();
+  });
+
+  addressInput.addEventListener('input', () => {
+    settings.serverAddress = addressInput.value.trim();
+    saveSettings();
+    if (settings.serverMode) {
+      disconnectWs();
+      if (settings.serverAddress) connectWs();
+    }
+  });
+
+  modeCheckbox.addEventListener('change', () => {
+    settings.serverMode = modeCheckbox.checked;
+    saveSettings();
+    if (settings.serverMode && settings.serverAddress) {
+      connectWs();
+    } else {
+      disconnectWs();
+    }
+  });
+
+  document.getElementById('settings-send-btn')!.addEventListener('click', () => sendStateToServer());
+  document.getElementById('settings-export-btn')!.addEventListener('click', handleExport);
+  document.getElementById('settings-import-btn')!.addEventListener('click', () => {
+    (document.getElementById('settings-import-file') as HTMLInputElement).click();
+  });
+  document.getElementById('settings-import-file')!.addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) handleImport(file);
+    (e.target as HTMLInputElement).value = '';
+  });
+}
+
+function handleExport(): void {
+  const data = {
+    name: settings.name || 'Anonymous',
+    timestamp: Date.now(),
+    orderedEntries: appState.orderedEntries,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(settings.name || 'anonymous').replace(/\s+/g, '-')}-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function handleImport(file: File): void {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target!.result as string) as any;
+      if (!Array.isArray(data.orderedEntries)) return;
+      const validIds = new Set(COUNTRIES.map(c => c.id));
+      appState.orderedEntries = data.orderedEntries
+        .filter((e: any) => validIds.has(e.countryId))
+        .map((e: any) => ({
+          countryId: e.countryId,
+          emojis: Array.isArray(e.emojis) ? e.emojis : [],
+        }));
+      saveState();
+      renderList();
+    } catch { /* ignore invalid files */ }
+  };
+  reader.readAsText(file);
+}
+
+// --- WebSocket ---
+
+function connectWs(): void {
+  if (ws) { ws.close(); ws = null; }
+  if (!settings.serverAddress) return;
+  try {
+    ws = new WebSocket(`ws://${settings.serverAddress}`);
+  } catch {
+    scheduleReconnect();
+    return;
+  }
+  ws.addEventListener('open', () => {
+    wsBackoff = 1000;
+    updateWsStatus('connected');
+    sendStateToServer();
+  });
+  ws.addEventListener('close', () => {
+    ws = null;
+    updateWsStatus('disconnected');
+    if (settings.serverMode) scheduleReconnect();
+  });
+}
+
+function disconnectWs(): void {
+  if (wsReconnectTimer !== null) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+  if (ws) { ws.close(); ws = null; }
+  updateWsStatus('off');
+}
+
+function scheduleReconnect(): void {
+  if (wsReconnectTimer !== null) clearTimeout(wsReconnectTimer);
+  wsReconnectTimer = setTimeout(() => {
+    wsBackoff = Math.min(wsBackoff * 2, 30000);
+    connectWs();
+  }, wsBackoff);
+}
+
+function sendStateToServer(): void {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({
+    name: settings.name || 'Anonymous',
+    timestamp: Date.now(),
+    orderedEntries: appState.orderedEntries,
+  }));
+}
+
+function updateWsStatus(status: 'off' | 'connected' | 'disconnected'): void {
+  const dot = document.getElementById('settings-status');
+  if (dot) dot.className = `status-dot status-${status}`;
+}
+
 // --- PWA Install ---
 
 function initInstallBanner(): void {
@@ -351,14 +498,12 @@ function initInstallBanner(): void {
     deferredInstallPrompt = e as BeforeInstallPromptEvent;
     document.getElementById('install-banner')!.classList.remove('hidden');
   });
-
   document.getElementById('install-accept')!.addEventListener('click', async () => {
     if (!deferredInstallPrompt) return;
     document.getElementById('install-banner')!.classList.add('hidden');
     await deferredInstallPrompt.prompt();
     deferredInstallPrompt = null;
   });
-
   document.getElementById('install-dismiss')!.addEventListener('click', () => {
     document.getElementById('install-banner')!.classList.add('hidden');
   });
@@ -369,7 +514,6 @@ function initInstallBanner(): void {
 function initFullscreen(): void {
   if (!window.matchMedia('(display-mode: standalone)').matches) return;
   if (!document.documentElement.requestFullscreen) return;
-
   const pref = localStorage.getItem(FULLSCREEN_KEY);
   if (pref === 'yes') {
     document.documentElement.requestFullscreen().catch(() => { /* ignore */ });
@@ -381,13 +525,11 @@ function initFullscreen(): void {
 function showFullscreenPrompt(): void {
   const overlay = document.getElementById('fullscreen-overlay')!;
   overlay.classList.remove('hidden');
-
   document.getElementById('fullscreen-yes')!.addEventListener('click', () => {
     localStorage.setItem(FULLSCREEN_KEY, 'yes');
     overlay.classList.add('hidden');
     document.documentElement.requestFullscreen().catch(() => { /* ignore */ });
   }, { once: true });
-
   document.getElementById('fullscreen-no')!.addEventListener('click', () => {
     overlay.classList.add('hidden');
   }, { once: true });
@@ -400,11 +542,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('close-dialog-btn')!.addEventListener('click', () => {
     (document.getElementById('add-dialog') as HTMLDialogElement).close();
   });
+  document.getElementById('settings-btn')!.addEventListener('click', () => showScreen('settings'));
 
+  initSettings();
   initEmojiPicker();
   renderList();
   initInstallBanner();
   initFullscreen();
+
+  if (settings.serverMode && settings.serverAddress) connectWs();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => { /* ignore */ });

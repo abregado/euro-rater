@@ -1,12 +1,9 @@
 {
-  "name": "euro-rater",
+  "name": "euro-rater-root",
   "private": true,
   "scripts": {
-    "build": "node scripts/make-icons.js && tsc",
-    "dev": "tsc --watch",
-    "icons": "node scripts/make-icons.js"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.0"
+    "build": "npm run build --prefix client",
+    "start:server": "node server/server.js",
+    "dev:client": "npm run dev --prefix client"
   }
 }

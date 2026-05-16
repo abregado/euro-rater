@@ -33,13 +33,46 @@
     </div>
 
     <section id="list-screen">
-      <header class="app-header">
+      <header class="app-header list-header">
         <h1>&#11088; Euro Rater 2026 &#11088;</h1>
+        <button id="settings-btn" class="btn-settings" aria-label="Settings">&#9881;</button>
       </header>
       <div class="list-controls">
         <button id="add-country-btn" class="btn-primary">+ Add Country</button>
       </div>
       <ul id="country-list"></ul>
+    </section>
+
+    <section id="settings-screen" class="hidden">
+      <header class="app-header settings-header">
+        <button id="settings-back-btn" class="btn-icon settings-back">&#8592;</button>
+        <h1>&#9881; Settings</h1>
+        <div class="settings-header-spacer"></div>
+      </header>
+      <div class="settings-body">
+        <div class="settings-field">
+          <label for="settings-name">Name</label>
+          <input type="text" id="settings-name" placeholder="YourName" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="settings-field">
+          <label for="settings-address">Server address</label>
+          <input type="text" id="settings-address" placeholder="192.168.1.1:8080" autocomplete="off" spellcheck="false" inputmode="url">
+        </div>
+        <div class="settings-field settings-field-row">
+          <label for="settings-server-mode">Server mode</label>
+          <input type="checkbox" id="settings-server-mode">
+          <span id="settings-status" class="status-dot status-off"></span>
+        </div>
+        <div class="settings-actions">
+          <button id="settings-send-btn" class="btn-primary">Send Now</button>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-actions">
+          <button id="settings-export-btn" class="btn-secondary-action">&#128229; Export</button>
+          <button id="settings-import-btn" class="btn-secondary-action">&#128228; Import</button>
+          <input type="file" id="settings-import-file" accept=".json" style="display:none">
+        </div>
+      </div>
     </section>
 
   </div>

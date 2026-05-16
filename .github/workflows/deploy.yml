@@ -27,16 +27,19 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: client/package-lock.json
 
       - run: npm ci
+        working-directory: client
 
       - run: npm run build
+        working-directory: client
 
       - uses: actions/configure-pages@v4
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: client/public
 
       - id: deployment
         uses: actions/deploy-pages@v4
