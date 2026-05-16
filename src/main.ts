@@ -96,6 +96,13 @@ function renderList(): void {
     handle.textContent = '☰';
     handle.addEventListener('pointerdown', (e) => startDrag(e, entry.countryId), { passive: false });
 
+    const flag = document.createElement('img');
+    flag.className = 'country-flag';
+    flag.src = `./flags/${entry.countryId}.png`;
+    flag.alt = proto.name;
+    flag.width = 36;
+    flag.height = 36;
+
     const info = document.createElement('div');
     info.className = 'country-info';
     const nameEl = document.createElement('strong');
@@ -110,7 +117,7 @@ function renderList(): void {
     editBtn.setAttribute('aria-label', `Edit ${proto.name}`);
     editBtn.addEventListener('click', () => openEdit(entry.countryId));
 
-    li.append(handle, info, editBtn);
+    li.append(handle, flag, info, editBtn);
     list.appendChild(li);
   });
 
@@ -196,7 +203,18 @@ function openAddDialog(): void {
     const li = document.createElement('li');
     const btn = document.createElement('button');
     btn.className = 'dialog-country-btn';
-    btn.textContent = proto.name;
+
+    const flag = document.createElement('img');
+    flag.className = 'country-flag';
+    flag.src = `./flags/${proto.id}.png`;
+    flag.alt = proto.name;
+    flag.width = 32;
+    flag.height = 32;
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = proto.name;
+
+    btn.append(flag, nameSpan);
     btn.addEventListener('click', () => {
       addCountry(proto.id);
       dialog.close();
@@ -225,6 +243,8 @@ function openEdit(countryId: string): void {
   const proto = getPrototype(countryId);
   const entry = appState.orderedEntries.find(e => e.countryId === countryId)!;
 
+  (document.getElementById('edit-flag') as HTMLImageElement).src = `./flags/${countryId}.png`;
+  (document.getElementById('edit-flag') as HTMLImageElement).alt = proto.name;
   document.getElementById('edit-country-name')!.textContent = proto.name;
   document.getElementById('edit-song-artist')!.textContent = `${proto.song} — ${proto.artist}`;
 
