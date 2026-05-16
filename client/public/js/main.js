@@ -330,6 +330,24 @@ function initSettings() {
             handleImport(file);
         e.target.value = '';
     });
+    document.getElementById('settings-clear-btn').addEventListener('click', handleClearData);
+}
+async function handleClearData() {
+    if (!confirm('Delete all local data and reset the app?'))
+        return;
+    disconnectWs();
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SETTINGS_KEY);
+    localStorage.removeItem(FULLSCREEN_KEY);
+    if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+    }
+    if ('caches' in self) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    location.reload();
 }
 function handleExport() {
     const data = {

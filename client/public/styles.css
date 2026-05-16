@@ -294,6 +294,15 @@ input[type="checkbox"] {
   background: rgba(255,255,255,0.08);
 }
 
+.btn-danger {
+  color: var(--hot-pink);
+  border-color: rgba(255, 20, 147, 0.4);
+}
+
+.btn-danger:hover, .btn-danger:active {
+  background: rgba(255, 20, 147, 0.12) !important;
+}
+
 /* ---- List screen ---- */
 
 .list-controls {
