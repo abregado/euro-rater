@@ -1,12 +1,11 @@
-import { COUNTRIES, RATING_FIELDS, RATING_MIN, RATING_MAX } from './config.js';
+import { COUNTRIES, PICKER_EMOJIS } from './config.js';
 import type { CountryPrototype } from './config.js';
 
 // --- Types ---
 
 interface CountryEntry {
   countryId: string;
-  ratings: Record<string, number>;
-  notes: string;
+  emojis: string[];
 }
 
 interface AppState {
@@ -28,22 +27,29 @@ interface BeforeInstallPromptEvent extends Event {
 
 const STORAGE_KEY = 'euro-rater-state';
 const FULLSCREEN_KEY = 'euro-rater-fullscreen';
+const MAX_EMOJIS = 3;
 
 // --- State ---
 
 let appState: AppState = loadState();
 let dragState: DragState | null = null;
-let editingCountryId: string | null = null;
+let pickerCountryId: string | null = null;
 let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
 
 function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as AppState;
+      const parsed = JSON.parse(raw) as any;
       const validIds = new Set(COUNTRIES.map(c => c.id));
-      parsed.orderedEntries = parsed.orderedEntries.filter(e => validIds.has(e.countryId));
-      return parsed;
+      return {
+        orderedEntries: (parsed.orderedEntries ?? [])
+          .filter((e: any) => validIds.has(e.countryId))
+          .map((e: any) => ({
+            countryId: e.countryId,
+            emojis: Array.isArray(e.emojis) ? e.emojis : [],
+          })),
+      };
     }
   } catch { /* ignore */ }
   return { orderedEntries: [] };
@@ -66,13 +72,6 @@ function getDisplayEntries(): CountryEntry[] {
   const dragged = appState.orderedEntries.find(e => e.countryId === ds.countryId)!;
   entries.splice(ds.targetIndex, 0, dragged);
   return entries;
-}
-
-// --- Screen management ---
-
-function showScreen(name: 'list' | 'edit'): void {
-  document.getElementById('list-screen')!.classList.toggle('hidden', name !== 'list');
-  document.getElementById('edit-screen')!.classList.toggle('hidden', name !== 'edit');
 }
 
 // --- List Screen ---
@@ -111,19 +110,131 @@ function renderList(): void {
     detailEl.textContent = `${proto.song} — ${proto.artist}`;
     info.append(nameEl, detailEl);
 
-    const editBtn = document.createElement('button');
-    editBtn.className = 'edit-btn';
-    editBtn.textContent = '✏️';
-    editBtn.setAttribute('aria-label', `Edit ${proto.name}`);
-    editBtn.addEventListener('click', () => openEdit(entry.countryId));
+    const emojiZone = document.createElement('div');
+    emojiZone.className = 'emoji-zone';
 
-    li.append(handle, flag, info, editBtn);
+    entry.emojis.forEach((emoji, idx) => {
+      const chip = document.createElement('button');
+      chip.className = 'emoji-chip';
+      chip.textContent = emoji;
+      chip.setAttribute('aria-label', `Remove ${emoji}`);
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        entry.emojis.splice(idx, 1);
+        saveState();
+        renderList();
+      });
+      emojiZone.appendChild(chip);
+    });
+
+    li.append(handle, flag, info, emojiZone);
+
+    li.addEventListener('click', (e) => {
+      const target = e.target as Element;
+      if (target.closest('.drag-handle') || target.closest('.emoji-chip')) return;
+      openEmojiPicker(entry.countryId);
+    });
+
     list.appendChild(li);
   });
 
   const addBtn = document.getElementById('add-country-btn')!;
   const addedIds = new Set(appState.orderedEntries.map(e => e.countryId));
   addBtn.style.display = COUNTRIES.every(c => addedIds.has(c.id)) ? 'none' : '';
+}
+
+// --- Emoji Picker ---
+
+function openEmojiPicker(countryId: string): void {
+  pickerCountryId = countryId;
+  renderEmojiPickerContent();
+  const dialog = document.getElementById('emoji-picker-dialog') as HTMLDialogElement;
+  if (!dialog.open) dialog.showModal();
+}
+
+function makeEmojiButton(emoji: string, entry: CountryEntry): HTMLButtonElement {
+  const isSelected = entry.emojis.includes(emoji);
+  const atMax = entry.emojis.length >= MAX_EMOJIS;
+  const btn = document.createElement('button');
+  btn.type = 'button'; // must be explicit so the form[method=dialog] doesn't close on click
+  btn.className = 'emoji-picker-btn';
+  if (isSelected) btn.classList.add('selected');
+  if (!isSelected && atMax) btn.classList.add('dimmed');
+  btn.textContent = emoji;
+  btn.setAttribute('aria-label', emoji);
+  btn.disabled = !isSelected && atMax;
+  btn.addEventListener('click', () => {
+    if (isSelected) {
+      entry.emojis = entry.emojis.filter(e => e !== emoji);
+    } else if (entry.emojis.length < MAX_EMOJIS) {
+      entry.emojis.push(emoji);
+    }
+    saveState();
+    renderList();
+    renderEmojiPickerContent();
+  });
+  return btn;
+}
+
+function renderEmojiPickerContent(): void {
+  if (!pickerCountryId) return;
+  const entry = appState.orderedEntries.find(e => e.countryId === pickerCountryId)!;
+  const dialog = document.getElementById('emoji-picker-dialog') as HTMLDialogElement;
+
+  const savedScroll = (dialog.querySelector('.emoji-picker-body') as HTMLElement | null)?.scrollTop ?? 0;
+  dialog.innerHTML = '';
+
+  const form = document.createElement('form');
+  form.method = 'dialog';
+  form.className = 'emoji-picker-form';
+
+  // Favorites bar — always shown, gradient background, X button on the right
+  const favSection = document.createElement('div');
+  favSection.className = 'emoji-picker-favorites';
+
+  const usedChips = document.createElement('div');
+  usedChips.className = 'emoji-picker-used';
+  const usedEmojis = [...new Set(appState.orderedEntries.flatMap(e => e.emojis))];
+  usedEmojis.forEach(emoji => usedChips.appendChild(makeEmojiButton(emoji, entry)));
+  favSection.appendChild(usedChips);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'submit';
+  closeBtn.className = 'btn-icon';
+  closeBtn.textContent = '✕';
+  favSection.appendChild(closeBtn);
+
+  form.appendChild(favSection);
+
+  // Scrollable grid
+  const body = document.createElement('div');
+  body.className = 'emoji-picker-body';
+  const grid = document.createElement('div');
+  grid.className = 'emoji-picker-grid';
+  PICKER_EMOJIS.forEach(emoji => grid.appendChild(makeEmojiButton(emoji, entry)));
+  body.appendChild(grid);
+  form.appendChild(body);
+
+  dialog.appendChild(form);
+  body.scrollTop = savedScroll;
+}
+
+function initEmojiPicker(): void {
+  const dialog = document.getElementById('emoji-picker-dialog') as HTMLDialogElement;
+
+  dialog.addEventListener('click', (e) => {
+    const rect = dialog.getBoundingClientRect();
+    if (
+      e.clientX < rect.left || e.clientX > rect.right ||
+      e.clientY < rect.top  || e.clientY > rect.bottom
+    ) {
+      dialog.close();
+    }
+  });
+
+  dialog.addEventListener('close', () => {
+    pickerCountryId = null;
+  });
 }
 
 // --- Drag ---
@@ -227,84 +338,8 @@ function openAddDialog(): void {
 }
 
 function addCountry(countryId: string): void {
-  appState.orderedEntries.push({
-    countryId,
-    ratings: Object.fromEntries(RATING_FIELDS.map(f => [f.id, 0])),
-    notes: '',
-  });
+  appState.orderedEntries.push({ countryId, emojis: [] });
   saveState();
-  renderList();
-}
-
-// --- Edit Screen ---
-
-function openEdit(countryId: string): void {
-  editingCountryId = countryId;
-  const proto = getPrototype(countryId);
-  const entry = appState.orderedEntries.find(e => e.countryId === countryId)!;
-
-  (document.getElementById('edit-flag') as HTMLImageElement).src = `./flags/${countryId}.png`;
-  (document.getElementById('edit-flag') as HTMLImageElement).alt = proto.name;
-  document.getElementById('edit-country-name')!.textContent = proto.name;
-  document.getElementById('edit-song-artist')!.textContent = `${proto.song} — ${proto.artist}`;
-
-  const form = document.getElementById('edit-form')!;
-  form.innerHTML = '';
-
-  RATING_FIELDS.forEach(field => {
-    const div = document.createElement('div');
-    div.className = 'rating-field';
-
-    const label = document.createElement('label');
-    label.htmlFor = `rating-${field.id}`;
-    label.textContent = field.label;
-
-    const input = document.createElement('input');
-    input.type = 'number';
-    input.id = `rating-${field.id}`;
-    input.min = String(RATING_MIN);
-    input.max = String(RATING_MAX);
-    input.value = String(entry.ratings[field.id] ?? 0);
-
-    div.append(label, input);
-    form.appendChild(div);
-  });
-
-  const notesDiv = document.createElement('div');
-  notesDiv.className = 'notes-field';
-
-  const notesLabel = document.createElement('label');
-  notesLabel.htmlFor = 'edit-notes';
-  notesLabel.textContent = 'Notes';
-
-  const notesArea = document.createElement('textarea');
-  notesArea.id = 'edit-notes';
-  notesArea.value = entry.notes ?? '';
-  notesArea.rows = 5;
-  notesArea.placeholder = 'Your thoughts...';
-
-  notesDiv.append(notesLabel, notesArea);
-  form.appendChild(notesDiv);
-
-  showScreen('edit');
-}
-
-function saveEdit(): void {
-  if (!editingCountryId) return;
-  const entry = appState.orderedEntries.find(e => e.countryId === editingCountryId)!;
-
-  RATING_FIELDS.forEach(field => {
-    const input = document.getElementById(`rating-${field.id}`) as HTMLInputElement;
-    const val = parseInt(input.value, 10);
-    entry.ratings[field.id] = isNaN(val) ? 0 : Math.max(RATING_MIN, Math.min(RATING_MAX, val));
-  });
-
-  const notesArea = document.getElementById('edit-notes') as HTMLTextAreaElement;
-  entry.notes = notesArea.value;
-
-  saveState();
-  editingCountryId = null;
-  showScreen('list');
   renderList();
 }
 
@@ -365,8 +400,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('close-dialog-btn')!.addEventListener('click', () => {
     (document.getElementById('add-dialog') as HTMLDialogElement).close();
   });
-  document.getElementById('save-close-btn')!.addEventListener('click', saveEdit);
 
+  initEmojiPicker();
   renderList();
   initInstallBanner();
   initFullscreen();

@@ -1,17 +1,45 @@
+// Edit this array to change which emojis appear in the picker (shown in order, 8 per row)
+export const PICKER_EMOJIS: string[] = [
+  // Smiling faces
+  '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
+  // Warm/loving faces
+  '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘', '🥲',
+  // Playful faces
+  '😋', '😛', '😜', '🤪', '🤑', '🤗', '🫶', '🥹',
+  // Awkward/nervous/judgy
+  '😬', '🫠', '🙈', '😎', '🤓', '🧐', '🤯', '😱',
+  // Strong negative reactions
+  '😤', '😡', '🤬', '😈', '💀', '☠️', '💩', '🤡',
+  // Sick/tired/other
+  '😴', '🥴', '🤢', '🤮', '🥵', '🥶', '😵', '🤧',
+  // Hearts
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🩷', '🖤',
+  // More hearts
+  '🤍', '🩶', '❤️‍🔥', '💔', '💝', '💘', '💖', '💗',
+  // Stars, sparkle, energy
+  '⭐', '🌟', '💫', '✨', '🔥', '⚡', '💥', '🌪️',
+  // Celebration
+  '🎆', '🎇', '🎊', '🎉', '🪩', '🎀', '🍾', '🥂',
+  // Music & instruments
+  '🎤', '🎵', '🎶', '🎸', '🥁', '🎹', '🎺', '🎻',
+  // More music & performance
+  '🪗', '🪘', '🎷', '🎼', '💃', '🕺', '🎭', '🎪',
+  // Trophies & awards
+  '🏆', '👑', '💎', '🥇', '🥈', '🥉', '🎯', '🌈',
+  // Animals
+  '🦄', '🐉', '🦋', '🦁', '🦊', '🦅', '🦜', '🐸',
+  // Gestures
+  '👏', '🙌', '🤌', '👍', '👎', '🤞', '🤟', '🤘',
+  // More gestures & symbols
+  '💅', '🫡', '🤫', '🙏', '✌️', '🖖', '🌸', '🌺',
+];
+
 export interface CountryPrototype {
   id: string;
   name: string;
   song: string;
   artist: string;
 }
-
-export interface RatingField {
-  id: string;
-  label: string;
-}
-
-export const RATING_MIN = 0;
-export const RATING_MAX = 20;
 
 // Running order for the Eurovision 2026 Grand Final (Vienna)
 export const COUNTRIES: CountryPrototype[] = [
@@ -40,8 +68,4 @@ export const COUNTRIES: CountryPrototype[] = [
   { id: 'no', name: 'Norway',         song: 'Ya ya ya',         artist: 'Jonas Lovv' },
   { id: 'ro', name: 'Romania',        song: 'Choke Me',         artist: 'Alexandra Căpitănescu' },
   { id: 'at', name: 'Austria',        song: 'Tanzschein',       artist: 'Cosmo' },
-];
-
-export const RATING_FIELDS: RatingField[] = [
-  { id: 'vocals', label: 'Vocals' },
 ];
