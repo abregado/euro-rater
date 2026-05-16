@@ -402,7 +402,16 @@ function initSettings(): void {
     if (file) handleImport(file);
     (e.target as HTMLInputElement).value = '';
   });
+  document.getElementById('settings-clear-list-btn')!.addEventListener('click', handleClearList);
   document.getElementById('settings-clear-btn')!.addEventListener('click', handleClearData);
+}
+
+function handleClearList(): void {
+  if (!confirm('Clear your country list? Settings will be kept.')) return;
+  appState = { orderedEntries: [] };
+  saveState();
+  renderList();
+  showScreen('list');
 }
 
 async function handleClearData(): Promise<void> {

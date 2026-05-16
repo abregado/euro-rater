@@ -330,7 +330,16 @@ function initSettings() {
             handleImport(file);
         e.target.value = '';
     });
+    document.getElementById('settings-clear-list-btn').addEventListener('click', handleClearList);
     document.getElementById('settings-clear-btn').addEventListener('click', handleClearData);
+}
+function handleClearList() {
+    if (!confirm('Clear your country list? Settings will be kept.'))
+        return;
+    appState = { orderedEntries: [] };
+    saveState();
+    renderList();
+    showScreen('list');
 }
 async function handleClearData() {
     if (!confirm('Delete all local data and reset the app?'))
