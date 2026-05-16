@@ -1,0 +1,12 @@
+{
+  "name": "euro-rater",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/make-icons.js && tsc",
+    "dev": "tsc --watch",
+    "icons": "node scripts/make-icons.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

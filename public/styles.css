@@ -1,0 +1,483 @@
+/* Euro Rater 2026 — Eurovision vibes, geocities forever */
+
+:root {
+  --purple: #7B2FBE;
+  --dark-purple: #4B0082;
+  --gold: #FFD700;
+  --hot-pink: #FF1493;
+  --cyan: #00FFFF;
+  --bg: #0D0D2B;
+  --text: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+body {
+  background: linear-gradient(160deg, #0D0D2B 0%, #2a0060 50%, #0D0D2B 100%);
+  color: var(--text);
+  font-family: 'Arial Black', Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 480px;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  position: relative;
+  background: rgba(11, 11, 40, 0.97);
+  border-left: 3px solid var(--gold);
+  border-right: 3px solid var(--gold);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Install Banner ---- */
+
+#install-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #0a0a2e, #2a006a);
+  border-bottom: 2px solid var(--cyan);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+#install-banner span {
+  flex: 1;
+  color: var(--cyan);
+}
+
+#install-accept {
+  background: var(--cyan);
+  color: #000;
+  border: none;
+  padding: 5px 10px;
+  font-weight: bold;
+  font-size: 0.75rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+#install-dismiss {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 5px 8px;
+  font-size: 0.75rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ---- Fullscreen overlay ---- */
+
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--bg);
+  border: 3px solid var(--gold);
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  max-width: 280px;
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.4);
+}
+
+.modal h2 {
+  color: var(--gold);
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+  text-shadow: 0 0 12px var(--gold);
+}
+
+.modal p {
+  color: var(--cyan);
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ---- Screens ---- */
+
+section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+section.hidden {
+  display: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---- Header ---- */
+
+.app-header {
+  background: linear-gradient(90deg, #2a0060, var(--hot-pink), #2a0060);
+  padding: 12px 16px;
+  text-align: center;
+  border-bottom: 3px solid var(--gold);
+  flex-shrink: 0;
+}
+
+.app-header h1 {
+  font-size: 1.3rem;
+  color: var(--gold);
+  text-shadow: 0 0 10px var(--hot-pink), 0 0 24px var(--hot-pink);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ---- List screen ---- */
+
+.list-controls {
+  padding: 10px 16px;
+  background: rgba(123, 47, 190, 0.25);
+  border-bottom: 2px solid rgba(123, 47, 190, 0.5);
+  flex-shrink: 0;
+}
+
+#country-list {
+  list-style: none;
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.country-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(123, 47, 190, 0.35);
+  background: rgba(75, 0, 130, 0.15);
+  user-select: none;
+}
+
+.country-row.is-dragging {
+  opacity: 0.35;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px dashed var(--gold);
+}
+
+.drag-handle {
+  cursor: grab;
+  font-size: 1.2rem;
+  color: var(--gold);
+  padding: 4px 2px;
+  flex-shrink: 0;
+  touch-action: none;
+  line-height: 1;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.country-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.country-info strong {
+  display: block;
+  color: var(--gold);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.country-info span {
+  display: block;
+  color: var(--cyan);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+}
+
+.edit-btn {
+  background: none;
+  border: 1px solid var(--hot-pink);
+  color: var(--hot-pink);
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.edit-btn:hover, .edit-btn:active {
+  background: rgba(255, 20, 147, 0.2);
+}
+
+/* ---- Buttons ---- */
+
+.btn-primary {
+  background: linear-gradient(90deg, var(--hot-pink), var(--purple));
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  font-family: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  box-shadow: 0 0 10px rgba(255, 20, 147, 0.5);
+}
+
+.btn-primary:hover, .btn-primary:active {
+  opacity: 0.85;
+}
+
+.btn-save {
+  background: linear-gradient(90deg, var(--gold), #e69900);
+  color: #000;
+  border: none;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  font-family: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-save:hover, .btn-save:active {
+  opacity: 0.85;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--gold);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: inherit;
+  line-height: 1;
+}
+
+/* ---- Edit screen ---- */
+
+.edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  gap: 12px;
+}
+
+.edit-country-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-country-info h2 {
+  color: var(--gold);
+  font-size: 1.1rem;
+  text-shadow: 0 0 8px var(--gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edit-country-info p {
+  color: var(--cyan);
+  font-size: 0.78rem;
+  margin-top: 2px;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#edit-form {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rating-field,
+.notes-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rating-field label,
+.notes-field label {
+  color: var(--gold);
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.rating-field input[type="number"] {
+  background: rgba(123, 47, 190, 0.25);
+  border: 2px solid var(--purple);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 1.2rem;
+  font-family: inherit;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.rating-field input[type="number"]:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.notes-field textarea {
+  background: rgba(123, 47, 190, 0.25);
+  border: 2px solid var(--purple);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-family: Arial, sans-serif;
+  border-radius: 4px;
+  width: 100%;
+  resize: vertical;
+}
+
+.notes-field textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.notes-field textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ---- Dialog ---- */
+
+dialog {
+  background: var(--bg);
+  border: 3px solid var(--gold);
+  border-radius: 8px;
+  color: var(--text);
+  max-width: min(90vw, 420px);
+  width: 100%;
+  max-height: 80vh;
+  padding: 0;
+  box-shadow: 0 0 50px rgba(75, 0, 130, 0.8);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 2px solid var(--gold);
+  background: linear-gradient(90deg, #2a0060, var(--hot-pink), #2a0060);
+  flex-shrink: 0;
+}
+
+.dialog-header h2 {
+  color: var(--gold);
+  font-size: 1rem;
+}
+
+#dialog-country-list {
+  list-style: none;
+  padding: 8px 0;
+  overflow-y: auto;
+  max-height: calc(80vh - 60px);
+}
+
+#dialog-country-list li {
+  padding: 3px 12px;
+}
+
+.dialog-country-btn {
+  width: 100%;
+  background: rgba(123, 47, 190, 0.2);
+  border: 1px solid rgba(123, 47, 190, 0.5);
+  color: var(--text);
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-family: inherit;
+  border-radius: 4px;
+}
+
+.dialog-country-btn:hover, .dialog-country-btn:active {
+  background: rgba(123, 47, 190, 0.55);
+  color: var(--gold);
+}
+
+/* ---- Scrollbars ---- */
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: rgba(75, 0, 130, 0.15); }
+::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 3px; }

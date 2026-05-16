@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4B0082">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>&#11088; Euro Rater 2026 &#11088;</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app">
+
+    <div id="install-banner" class="hidden">
+      <span>&#128241; Add Euro Rater to your home screen!</span>
+      <button id="install-accept">Install</button>
+      <button id="install-dismiss">&#x2715;</button>
+    </div>
+
+    <div id="fullscreen-overlay" class="modal-overlay hidden">
+      <div class="modal">
+        <h2>&#127775; Go Fullscreen?</h2>
+        <p>For the best Eurovision experience!</p>
+        <div class="modal-buttons">
+          <button id="fullscreen-yes" class="btn-primary">Yes!</button>
+          <button id="fullscreen-no" class="btn-secondary">Not now</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="list-screen">
+      <header class="app-header">
+        <h1>&#11088; Euro Rater 2026 &#11088;</h1>
+      </header>
+      <div class="list-controls">
+        <button id="add-country-btn" class="btn-primary">+ Add Country</button>
+      </div>
+      <ul id="country-list"></ul>
+    </section>
+
+    <section id="edit-screen" class="hidden">
+      <header class="app-header edit-header">
+        <div class="edit-country-info">
+          <h2 id="edit-country-name"></h2>
+          <p id="edit-song-artist"></p>
+        </div>
+        <button id="save-close-btn" class="btn-save">Save &amp; Close</button>
+      </header>
+      <div id="edit-form"></div>
+    </section>
+
+  </div>
+
+  <dialog id="add-dialog">
+    <div class="dialog-header">
+      <h2>&#127758; Choose a Country</h2>
+      <button id="close-dialog-btn" class="btn-icon">&#x2715;</button>
+    </div>
+    <ul id="dialog-country-list"></ul>
+  </dialog>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
