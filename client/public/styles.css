@@ -514,6 +514,22 @@ input[type="checkbox"] {
   padding: 10px 12px 14px;
 }
 
+.emoji-picker-category {
+  grid-column: 1 / -1;
+  color: var(--gold);
+  font-size: 0.65rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 2px 2px;
+  opacity: 0.7;
+  font-family: Arial, sans-serif;
+}
+
+.emoji-picker-category:first-child {
+  padding-top: 2px;
+}
+
 .emoji-picker-btn {
   background: none;
   border: 2px solid transparent;

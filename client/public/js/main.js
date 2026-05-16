@@ -1,4 +1,4 @@
-import { COUNTRIES, PICKER_EMOJIS } from './config.js';
+import { COUNTRIES, PICKER_EMOJI_GROUPS } from './config.js';
 // --- Constants ---
 const STORAGE_KEY = 'euro-rater-state';
 const SETTINGS_KEY = 'euro-rater-settings';
@@ -185,7 +185,13 @@ function renderEmojiPickerContent() {
     body.className = 'emoji-picker-body';
     const grid = document.createElement('div');
     grid.className = 'emoji-picker-grid';
-    PICKER_EMOJIS.forEach(emoji => grid.appendChild(makeEmojiButton(emoji, entry)));
+    PICKER_EMOJI_GROUPS.forEach(group => {
+        const header = document.createElement('div');
+        header.className = 'emoji-picker-category';
+        header.textContent = group.label;
+        grid.appendChild(header);
+        group.emojis.forEach(emoji => grid.appendChild(makeEmojiButton(emoji, entry)));
+    });
     body.appendChild(grid);
     form.appendChild(body);
     dialog.appendChild(form);
